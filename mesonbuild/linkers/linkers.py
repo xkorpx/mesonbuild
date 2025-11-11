@@ -1605,7 +1605,7 @@ class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
 class ZOSXlfDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
-    """z/OS clang implementation."""
+    """z/OS XL Fortran linker implementation."""
 
     id = "xlf"
 
@@ -1627,9 +1627,32 @@ class ZOSXlfDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_always_args(self) -> T.List[str]:
         return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib/', '-lxlf90', '-lxl']
 
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        # XLF uses -qmkshrobj to create shared libraries, not -shared
+        return ['-qmkshrobj']
+    
+    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        # Shared modules also use -qmkshrobj on z/OS
+        return ['-qmkshrobj']
+
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        # z/OS doesn't support soname in the same way as Linux
         return []
+    
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        # XLF requires -o flag for output
+        return ['-o', outputname]
+    
+    def get_pic_args(self) -> T.List[str]:
+        # z/OS position-independent code
+        return []
+    
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        # z/OS uses LIBPATH environment variable instead of rpath
+        return ([], set())
 
 class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
