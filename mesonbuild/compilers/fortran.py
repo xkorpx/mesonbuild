@@ -369,93 +369,81 @@ class G95FortranCompiler(FortranCompiler):
 
 
 class ZOSXlfCompiler(FortranCompiler):
+    
+    LINKER_PREFIX = '-Wl,'
+    id = 'zos-xlf'
+    
     def __init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper=None):
-        self.id='zos-xlf'
+        self.id = 'zos-xlf'
         self.language = 'fortran'
         self.linker = None
         super().__init__(exelist, version, for_machine, is_cross, info, exe_wrapper)
 
-#        self.sanity_check = lambda *args, **kwargs: None
-
-    LINKER_PREFIX = '-Wl,'
-    id = 'zos-xlf'
-
     def sanity_check(self, *args, **kwargs):
+        # XLF sanity check is skipped - can be problematic on z/OS
         return
 
     def __reduce__(self):
         exe_wrapper = getattr(self, 'exe_wrapper', None)
-        return(
-                self.__class__,
-                (self.exelist, self.version,
-                 self.for_machine, self.is_cross, self.info,
-                 exe_wrapper),
-                self.__dict__)
-
-
-    def get_external_args(self, env):
-        print(f"DEBUG get_external_args is called on {self.id} with language={self.language}")
-        for_machine = getattr(env, 'for_machine', None)
-        if for_machine is None:
-            if hasattr(self, 'for_machine') and self.for_machine is not None:
-                for_machine = self.for_machine
-            else:
-                return []
-        lang = self.language if self.language else 'fortran'
-        return env.coredata.get_external_args(for_machine, lang)
+        return (
+            self.__class__,
+            (self.exelist, self.version,
+             self.for_machine, self.is_cross, self.info,
+             exe_wrapper),
+            self.__dict__)
 
     def __getstate__(self):
         state = self.__dict__.copy()
         state['language'] = 'fortran'
         return state
 
-    def __setstate__(self,state):
-        self.__dict__.copy()
-        self.language('fortran')
-
-    def _get_basic_compiler_args(self,env,mode):
-        return self.get_basic_compiler_args(env,mode)
-
-    def get_basic_compiler_args(self,env,mode):
-        return [], []
-
-    def _get_compile_args(self,env,mode):
-        cargs, _ = self.get_basic_compiler_args(env,mode)
-        return cargs
-
-    def _get_compile_args(self, env, mode):
-        return self.get_basic_compiler_args(env, mode)
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.language = 'fortran'
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return ['-fpp']
+        return ['-qmakedep=gcc']
 
     def has_argument_method(self, arg, env):
+        # XLF doesn't have a reliable way to test arguments
         return False
 
-    def get_option_compile_args(self, options):
-        return []
-        #        return options.get(options.OptionKey('fortran_args', machine=self.for_machine, lang='fortran'),[])
-
-    def get_option_link_args(self, options):
-        return []
-        #        key = f'fortran_link_args:{self.for_machine.value}'
-#        return options.get(key,[])
-#        return options.get(options.OptionKey('fortran_args', machine=self.for_machine, lang='fortran'),[])
-
     def get_always_args(self) -> T.List[str]:
-        return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib','-lxlf90', '-lxl']
+        return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib', '-lxlf90', '-lxl']
 
     def get_warn_args(self, level: str) -> T.List[str]:
-        return []
+        # XLF warning levels mapping
+        return {
+            '0': [],
+            '1': ['-qflag=i:w'],
+            '2': ['-qflag=i:w'],
+            '3': ['-qflag=i:w'],
+            'everything': ['-qflag=i:w']
+        }.get(level, [])
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-qmoddir=' + path]
 
     def get_pic_args(self) -> T.List[str]:
+        # z/OS uses different PIC model
         return []
 
     def openmp_flags(self) -> T.List[str]:
-        return ['-xopenmp']
+        return ['-qsmp=omp']
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return {
+            'plain': [],
+            '0': ['-O0'],
+            'g': ['-O0'],
+            '1': ['-O1'],
+            '2': ['-O2'],
+            '3': ['-O3'],
+            's': ['-O2']
+        }.get(optimization_level, [])
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return ['-g'] if is_debug else []
 
     def get_linker_exelist(self):
         return self.exelist[:]

@@ -580,16 +580,11 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        #skip arg set during sanity check for xlf
-        if lang == '' or lang =='fortran': 
-            return []
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_link_args', machine=for_machine)
-        if lang == '' or lang == 'fortran':
-            return []
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:

@@ -759,10 +759,9 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 version = '16.1.2'
                 #version = search_version(err)
                 cls = fortran.ZOSXlfCompiler
-                print('got here')
-#                linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+                # Register language args BEFORE creating compiler instance
+                env.coredata.add_lang_args(cls.language, cls, for_machine, env)
                 linker = linkers.ZOSXlfDynamicLinker(exelist=compiler, for_machine=for_machine, prefix_arg='', always_args=[], version=version)
-                print('got past linker definition')
                 comp = cls(exelist=compiler, version=version, for_machine=for_machine, is_cross=is_cross, info=info)
                 comp.linker = linker
                 
