@@ -377,6 +377,9 @@ class ZOSXlfCompiler(FortranCompiler):
         self.id = 'zos-xlf'
         self.language = 'fortran'
         self.linker = None
+        # DEBUG: Print what Meson thinks the compiler path is
+        print(f"DEBUG: ZOSXlfCompiler initialized with exelist: {exelist}")
+        print(f"DEBUG: Current working directory: {os.getcwd()}")
         super().__init__(exelist, version, for_machine, is_cross, info, exe_wrapper)
 
     def sanity_check(self, *args, **kwargs):
@@ -409,6 +412,12 @@ class ZOSXlfCompiler(FortranCompiler):
         return False
 
     def get_always_args(self) -> T.List[str]:
+        # XLF compiler driver handles system libraries automatically
+        # Only add explicit flags if needed by your environment
+        return []
+    
+    def get_linker_always_args(self) -> T.List[str]:
+        # These are added at the END of the link line for Fortran runtime
         return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib', '-lxlf90', '-lxl']
 
     def get_warn_args(self, level: str) -> T.List[str]:
@@ -446,7 +455,13 @@ class ZOSXlfCompiler(FortranCompiler):
         return ['-g'] if is_debug else []
 
     def get_linker_exelist(self):
+        print(f"DEBUG: get_linker_exelist() returning: {self.exelist}")
         return self.exelist[:]
+    
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
+        result = super().get_exelist(ccache)
+        print(f"DEBUG: get_exelist(ccache={ccache}) returning: {result}")
+        return result
 
     def linker_is_known(self):
         return True

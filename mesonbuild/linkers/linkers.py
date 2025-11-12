@@ -1625,15 +1625,18 @@ class ZOSXlfDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_always_args(self) -> T.List[str]:
-        return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib/', '-lxlf90', '-lxl']
+        # XLF runtime libraries - these must come at the end of link line
+        # Note: XLF compiler driver should automatically add system libraries
+        return []
 
     def get_std_shared_lib_args(self) -> T.List[str]:
-        # XLF uses -qmkshrobj to create shared libraries, not -shared
-        return ['-qmkshrobj']
+        # XLF uses -qmkshrobj to create shared libraries (DLLs) on z/OS
+        # -qxplink ensures XPLINK linkage (required for modern z/OS)
+        return ['-qmkshrobj', '-qxplink']
     
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        # Shared modules also use -qmkshrobj on z/OS
-        return ['-qmkshrobj']
+        # Shared modules also use -qmkshrobj and -qxplink on z/OS
+        return ['-qmkshrobj', '-qxplink']
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
