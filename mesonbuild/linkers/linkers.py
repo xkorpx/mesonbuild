@@ -1580,7 +1580,7 @@ class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     """z/OS linker - standard POSIX-like behavior.
     
     Used for both clang and as the linker for XLF.
-    Just a standard ld that inherits most behavior from PosixDynamicLinkerMixin.
+    z/OS ld doesn't support some standard GNU ld flags.
     """
 
     id = "ld"
@@ -1606,6 +1606,33 @@ class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         # z/OS uses LIBPATH environment variable instead of rpath
         return ([], set())
+    
+    def get_asneeded_args(self) -> T.List[str]:
+        # z/OS ld doesn't support --as-needed
+        return []
+    
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        # z/OS ld doesn't support --whole-archive
+        # Just return the args as-is
+        return args
+    
+    def no_undefined_args(self) -> T.List[str]:
+        # z/OS ld doesn't support --no-undefined
+        return []
+    
+    def get_pie_args(self) -> T.List[str]:
+        # z/OS doesn't use -pie
+        return []
+    
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        # z/OS ld doesn't support -shared (it interprets it as -s and hared!)
+        # z/OS creates shared libraries (DLLs) differently
+        # Return empty - shared library creation is handled by compiler flags or other means
+        return []
+    
+    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        # Same as shared libs on z/OS
+        return []
 
 class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
