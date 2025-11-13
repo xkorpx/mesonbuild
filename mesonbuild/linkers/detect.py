@@ -143,7 +143,11 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
                 check_args = ['-qversion']
             else:
                 check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args
+    elif comp_class.LINKER_PREFIX is None:
+        # No linker prefix (e.g., XLF doesn't link), just use --version
+        check_args = ['--version'] + extra_args
     else:
+        # LINKER_PREFIX is a list
         check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
     override: T.List[str] = []
