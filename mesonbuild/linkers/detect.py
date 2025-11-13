@@ -153,6 +153,12 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     override: T.List[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
+        # Custom linker specified (e.g., fortran_ld = 'xlc')
+        # For IBM compilers like xlc, use -qversion instead of --version
+        linker_cmd = value if isinstance(value, list) else [value]
+        if any('xlc' in str(cmd).lower() or 'xlf' in str(cmd).lower() for cmd in linker_cmd):
+            # IBM compiler being used as linker
+            check_args = ['-qversion']
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 

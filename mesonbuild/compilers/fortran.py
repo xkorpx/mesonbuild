@@ -425,7 +425,8 @@ class ZOSXlfCompiler(FortranCompiler):
         return []
     
     def get_linker_always_args(self) -> T.List[str]:
-        # These are added at the END of the link line for Fortran runtime
+        # XLF Fortran runtime libraries - must be at the END of the link line
+        # These are needed regardless of whether using xlf, xlc, or ld as linker
         return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib', '-lxlf90', '-lxl']
 
     def get_warn_args(self, level: str) -> T.List[str]:
