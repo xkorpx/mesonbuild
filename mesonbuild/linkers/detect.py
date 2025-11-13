@@ -232,6 +232,12 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         linker = linkers.AIXDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             version=search_version(e))
+    elif 'xlf' in o.lower() or 'xlf' in e.lower() or 'xl fortran' in o.lower() or 'xl fortran' in e.lower():
+        # IBM XL Fortran being used as linker
+        # Use z/OS linker since xlf acts as a linker driver on z/OS
+        linker = linkers.ZOSDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override,
+            version=v if v else search_version(o + e))
     elif 'IEW5033' in e:
         print("I am in linker/detect ")
         if isinstance(comp_class.LINKER_PREFIX, str):
