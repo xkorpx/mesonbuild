@@ -1577,18 +1577,18 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
 class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
-    """z/OS clang implementation."""
+    """z/OS /bin/ld linker implementation.
+    
+    This is the standard z/OS system linker used with both clang and XLF.
+    Requires _LD_SYSLIB and _LD_SIDE_DECKS environment variables.
+    """
 
-    id = "clang++"
+    id = "ld"
 
     @staticmethod
     def parse_version() -> str:
-        version_cmd = ['clang++', '--version']
-        try:
-            _, out, _ = mesonlib.Popen_safe(version_cmd)
-        except OSError:
-            return 'unknown version'
-        return out.strip().rsplit('V', maxsplit=1)[-1]
+        # z/OS ld doesn't have a standard version command
+        return 'unknown version'
 
     def get_accepts_rsp(self) -> bool:
         return False
@@ -1598,58 +1598,23 @@ class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        # z/OS doesn't use soname
         return []
 
     def get_always_args(self) -> T.List[str]:
-        return ['-L/u/pyzoda/share/bin/opt/ibm/xlf/16.1.2/lib/', '-lxlf90', '-lxl']
-
-class ZOSXlfDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
-
-    """z/OS XL Fortran linker implementation."""
-
-    id = "xlf"
-
-    @staticmethod
-    def parse_version() -> str:
-        version_cmd = ['xlf', '-qversion']
-        try:
-            _, out, _ = mesonlib.Popen_safe(version_cmd)
-        except OSError:
-            return 'unknown version'
-        return out.strip().rsplit('V', maxsplit=1)[-1]
-
-    def get_accepts_rsp(self) -> bool:
-        return False
-
-    def get_allow_undefined_args(self) -> T.List[str]:
+        # Don't hardcode libraries here - let them be specified per-language
         return []
-
-    def get_always_args(self) -> T.List[str]:
-        # XLF runtime libraries - these must come at the end of link line
-        # Note: XLF compiler driver should automatically add system libraries
-        return []
-
+    
     def get_std_shared_lib_args(self) -> T.List[str]:
-        # XLF uses -qmkshrobj to create shared libraries (DLLs) on z/OS
-        # -qxplink ensures XPLINK linkage (required for modern z/OS)
-        return ['-qmkshrobj', '-qxplink']
+        # z/OS ld creates DLLs with -b dll and requires XPLINK
+        return ['-b', 'dll', '-b', 'xplink']
     
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        # Shared modules also use -qmkshrobj and -qxplink on z/OS
-        return ['-qmkshrobj', '-qxplink']
-
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
-        # z/OS doesn't support soname in the same way as Linux
-        return []
+        # Shared modules use the same flags as shared libraries on z/OS
+        return ['-b', 'dll', '-b', 'xplink']
     
     def get_output_args(self, outputname: str) -> T.List[str]:
-        # XLF requires -o flag for output
         return ['-o', outputname]
-    
-    def get_pic_args(self) -> T.List[str]:
-        # z/OS position-independent code
-        return []
     
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,

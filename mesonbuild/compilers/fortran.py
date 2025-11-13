@@ -369,18 +369,26 @@ class G95FortranCompiler(FortranCompiler):
 
 
 class ZOSXlfCompiler(FortranCompiler):
+    """IBM XL Fortran compiler for z/OS.
     
-    LINKER_PREFIX = '-Wl,'
+    Note: XLF is a compiler-only tool and does NOT handle linking.
+    Linking must be done with a separate linker (c89, xlc, or ld).
+    Specify 'fortran_ld' in your native file to set the linker.
+    """
+    
+    # XLF doesn't use -Wl, prefix since it doesn't link
+    # The actual linker will have its own prefix
+    LINKER_PREFIX = None
     id = 'zos-xlf'
     
-    def __init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper=None):
+    def __init__(self, exelist, version, for_machine, is_cross, info, linker=None, exe_wrapper=None):
         self.id = 'zos-xlf'
         self.language = 'fortran'
-        self.linker = None
         # DEBUG: Print what Meson thinks the compiler path is
         print(f"DEBUG: ZOSXlfCompiler initialized with exelist: {exelist}")
+        print(f"DEBUG: Linker: {linker}")
         print(f"DEBUG: Current working directory: {os.getcwd()}")
-        super().__init__(exelist, version, for_machine, is_cross, info, exe_wrapper)
+        super().__init__(exelist, version, for_machine, is_cross, info, linker=linker)
 
     def sanity_check(self, *args, **kwargs):
         # XLF sanity check is skipped - can be problematic on z/OS
@@ -454,17 +462,10 @@ class ZOSXlfCompiler(FortranCompiler):
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['-g'] if is_debug else []
 
-    def get_linker_exelist(self):
-        print(f"DEBUG: get_linker_exelist() returning: {self.exelist}")
-        return self.exelist[:]
-    
     def get_exelist(self, ccache: bool = True) -> T.List[str]:
         result = super().get_exelist(ccache)
-        print(f"DEBUG: get_exelist(ccache={ccache}) returning: {result}")
+        print(f"DEBUG: XLF get_exelist(ccache={ccache}) returning: {result}")
         return result
-
-    def linker_is_known(self):
-        return True
 
 class SunFortranCompiler(FortranCompiler):
 

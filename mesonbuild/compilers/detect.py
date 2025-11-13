@@ -761,10 +761,32 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = fortran.ZOSXlfCompiler
                 # Register language args BEFORE creating compiler instance
                 env.coredata.add_lang_args(cls.language, cls, for_machine, env)
-                linker = linkers.ZOSXlfDynamicLinker(exelist=compiler, for_machine=for_machine, prefix_arg='', always_args=[], version=version)
-                comp = cls(exelist=compiler, version=version, for_machine=for_machine, is_cross=is_cross, info=info)
-                comp.linker = linker
                 
+                # XLF doesn't link - need to detect actual z/OS linker
+                # Check if fortran_ld is specified in binaries section
+                linker_name = env.lookup_binary_entry(for_machine, 'fortran_ld')
+                if linker_name is not None:
+                    # Use specified linker (e.g., c89, xlc, clang)
+                    from ..linkers.detect import guess_nix_linker
+                    linker_compiler = linker_name if isinstance(linker_name, list) else [linker_name]
+                    linker = guess_nix_linker(env, linker_compiler, cls, version, for_machine)
+                else:
+                    # Fallback: try to detect system linker (c89, xlc, or ld)
+                    # Default to ZOSDynamicLinker if available
+                    for potential_linker in [['c89'], ['xlc'], ['clang'], ['ld']]:
+                        try:
+                            from ..linkers.detect import guess_nix_linker
+                            linker = guess_nix_linker(env, potential_linker, cls, version, for_machine)
+                            mlog.log(f'XLF will use {potential_linker[0]} for linking')
+                            break
+                        except Exception:
+                            continue
+                    else:
+                        # Last resort: use z/OS system linker
+                        linker = linkers.ZOSDynamicLinker(exelist=['/bin/ld'], for_machine=for_machine, prefix_arg='', always_args=[], version=version)
+                        mlog.warning('Could not detect z/OS linker for XLF. Using /bin/ld. Specify fortran_ld in your native file for better control.')
+                
+                comp = cls(exelist=compiler, version=version, for_machine=for_machine, is_cross=is_cross, info=info, linker=linker)
                 return comp
 
             if 'Sun Fortran' in err:
