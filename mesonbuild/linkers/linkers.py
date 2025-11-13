@@ -1577,10 +1577,10 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
 class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
-    """z/OS /bin/ld linker implementation.
+    """z/OS linker - standard POSIX-like behavior.
     
-    This is the standard z/OS system linker used with both clang and XLF.
-    Requires _LD_SYSLIB and _LD_SIDE_DECKS environment variables.
+    Used for both clang and as the linker for XLF.
+    Just a standard ld that inherits most behavior from PosixDynamicLinkerMixin.
     """
 
     id = "ld"
@@ -1598,23 +1598,8 @@ class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
-        # z/OS doesn't use soname
+        # z/OS doesn't use soname like Linux
         return []
-
-    def get_always_args(self) -> T.List[str]:
-        # Don't hardcode libraries here - let them be specified per-language
-        return []
-    
-    def get_std_shared_lib_args(self) -> T.List[str]:
-        # z/OS ld creates DLLs with -b dll and requires XPLINK
-        return ['-b', 'dll', '-b', 'xplink']
-    
-    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        # Shared modules use the same flags as shared libraries on z/OS
-        return ['-b', 'dll', '-b', 'xplink']
-    
-    def get_output_args(self, outputname: str) -> T.List[str]:
-        return ['-o', outputname]
     
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
